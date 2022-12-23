@@ -12,6 +12,16 @@ function drawMenu(){
         button.remove();
         drawLevelSelection();
     }
+    /*background-image:url('./img/robotdefense.png');
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-attachment: fixed;
+    background-size: cover;*/
+    document.body.style.backgroundImage = "url('../img/robotdefense.png')";
+    document.body.style.backgroundRepeat = "no-repeat";
+    document.body.style.backgroundPosition = "center center";
+    document.body.style.backgroundAttachment = "fixed";
+    document.body.style.backgroundSize = "cover";
     document.body.appendChild(button);
 }
 
@@ -52,7 +62,19 @@ function drawLevelSelection(){
     document.body.appendChild(mediumButton);
 }
 
-function initGame(){
+const LEVELS = 2;
 
+function initGame(difficulty){
+    const request = new XMLHttpRequest();
+    request.open("GET", "./levels.json", false);
+    request.send();
+    const levels = JSON.parse(request.responseText);
+
+    document.body.style.backgroundImage = "none";
+    document.body.style.backgroundColor = "black";
+    let level;
+    if(difficulty===1){
+        level = Math.floor(Math.random() * LEVELS);
+    }
 }
 drawMenu();
