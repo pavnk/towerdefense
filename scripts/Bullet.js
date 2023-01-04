@@ -4,6 +4,7 @@ class Bullet {
         this.x = startX;
         this.y = startY;
         this.dir=dir;
+        this.damage = 50;
     }
     update(ctx, route){
         this.x=this.x+Math.cos(this.dir)*this.speed;
@@ -20,7 +21,7 @@ class Bullet {
             if(entities[i] instanceof Enemy){
                 const distance = calculateDistance(this.x,this.y,entities[i].x,entities[i].y);
                 if(distance<10){
-                    entities[i].onDamage(10);
+                    entities[i].onDamage(this.damage);
                     entities.splice(findMyself(this),1);
                 }
             }

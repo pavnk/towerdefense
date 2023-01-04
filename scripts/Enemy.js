@@ -6,12 +6,20 @@ class Enemy {
         this.x = startX;
         this.y = startY;
         this.dir=1;
+        this.reward = 20;
+        this.damageToBase = 5;
         this.image = new Image;
         this.image.src = "../tureta1.png";
         this.currentWaypoint=1;
     }
     update(ctx, route){
         this.updateWaypoint(route);
+        const distance = calculateDistance(this.x,this.y,route[route.length-1].x,route[route.length-1].y);
+        if(distance<3){
+            entities.splice(findMyself(this),1);
+            updateHP(this.damageToBase);
+        }
+
         ctx.save();
 
         ctx.translate(this.x,this.y);
@@ -21,7 +29,6 @@ class Enemy {
         ctx.drawImage(this.image, 0, 0);
 
         ctx.restore();
-        console.log(this.health);
     }
     updateWaypoint(route){
         const distance = calculateDistance(this.x,this.y, route[this.currentWaypoint].x,route[this.currentWaypoint].y);
@@ -39,8 +46,9 @@ class Enemy {
         }
     }
     onDestroy(){
+        killedEnemies++;
         let total = parseInt(money.innerText,10);
-        total += 20;
+        total += this.reward;
         money.innerText = total.toString();
         entities.splice(findMyself(this),1);
         console.log("dead");

@@ -3,21 +3,58 @@ const OFFSET = 50;
 
 let ctx;
 let level;
-let route;
+let route=[];
 
 let mouseX;
 let mouseY;
 
 let money;
 
-const turretCost = 50;
+let baseHP;
+
+let lastSpawnMls = 0;
+
+const basicTurretCost = 50;
+const sniperTurretCost = 100;
 
 let currentTurret=null;
 
+let killedEnemies = 0;
+
 let entities=[];
 
+let waves=[];
+
+let enemyIndex = 0;
+
+let waveIndex = 0;
+
+let stopSpawn = false;
+
+let gameEndStatus = 0;
+
+function initVars(){
+    canvas = null;
+    ctx = null;
+    level = null;
+    route = [];
+    mouseX=0;
+    mouseY=0;
+    lastSpawnMls = 0;
+    currentTurret = null;
+    killedEnemies = 0;
+    entities=[];
+    waves=[];
+    enemyIndex=0;
+    waveIndex=0;
+    stopSpawn=false;
+    gameEndStatus=0;
+}
 
 function drawMenu() {
+
+    initVars();
+
     const button = document.createElement("button");
     button.style.width = "300px";
     button.style.height = "50px";
@@ -31,11 +68,6 @@ function drawMenu() {
         button.remove();
         drawLevelSelection();
     }
-    /*background-image:url('./img/robotdefense.png');
-    background-repeat: no-repeat;
-    background-position: center center;
-    background-attachment: fixed;
-    background-size: cover;*/
     document.body.style.backgroundImage = "url('../img/robotdefense.png')";
     document.body.style.backgroundRepeat = "no-repeat";
     document.body.style.backgroundPosition = "center center";
@@ -84,15 +116,25 @@ function drawLevelSelection() {
 const LEVELS = 2;
 
 function drawBuyMenu() {
+    baseHP = document.createElement("span");
+    baseHP.innerText="100";
+    baseHP.style.position = "fixed";
+    baseHP.style.top = "2%";
+    baseHP.style.left = "50%";
+    baseHP.style.color = "white";
+    document.body.appendChild(baseHP);
+
+
     money = document.createElement("span");
-    money.innerText="150";
+    money.innerText="50";
     money.style.position = "fixed";
     money.style.top = "2%";
     money.style.left = "80%";
+    money.style.color = "white";
     document.body.appendChild(money);
 
     const button = document.createElement('button');
-    button.innerText = "button";
+    button.innerText = "Basic";
     button.style.width = "100px";
     button.style.height = "50px";
     button.style.position = "fixed";
@@ -100,14 +142,32 @@ function drawBuyMenu() {
     button.style.left = "80%";
     button.addEventListener("mousedown", function () {
         let total = parseInt(money.innerText,10);
-        if(total >= turretCost) {
-            total -= turretCost;
+        if(total >= basicTurretCost) {
+            total -= basicTurretCost;
             money.innerText = total.toString();
-            currentTurret = new Turret("normal", 100, mouseX, mouseY);
+            currentTurret = new BasicTurret("normal", 100, mouseX, mouseY);
             entities.push(currentTurret);
         }
     });
     document.body.appendChild(button);
+
+    const button2 = document.createElement('button');
+    button2.innerText = "sniper";
+    button2.style.width = "100px";
+    button2.style.height = "50px";
+    button2.style.position = "fixed";
+    button2.style.top = "10%";
+    button2.style.left = "80%";
+    button2.addEventListener("mousedown", function () {
+        let total = parseInt(money.innerText,10);
+        if(total >= sniperTurretCost) {
+            total -= sniperTurretCost;
+            money.innerText = total.toString();
+            currentTurret = new SniperTurret("sniper", 100, mouseX, mouseY);
+            entities.push(currentTurret);
+        }
+    });
+    document.body.appendChild(button2);
 }
 
 function initGame(difficulty) {
@@ -148,20 +208,190 @@ function initGame(difficulty) {
 
     if (difficulty === 1) {
         level = Math.floor(Math.random() * LEVELS);
-        route = levels.difficulty.easy[level];
-        //drawBoard1(route);
+        //route = levels.difficulty.easy[level];
+        for(let i=0; i<levels.difficulty.easy[level].length;i++){
+            if(i<3){
+                waves.push(levels.difficulty.easy[level][i]);
+            }
+            else
+                route.push(levels.difficulty.easy[level][i]);
+        }
     }
-    var enemy= new Enemy("noraml",100,0.5,route[0].x,route[0].y);
-    entities.push(enemy);
-
-
     window.requestAnimationFrame(gameLoop);
 }
 
 function gameLoop(){
+    checkGameEnd();
+    if(gameEndStatus===1){
+        gameLost();
+        return;
+    }
+    else if(gameEndStatus===2){
+        gameWon();
+        return;
+    }
+    spawnEnemies();
     draw();
 
     window.requestAnimationFrame(gameLoop);
+}
+
+function checkGameEnd(){
+    let hp = parseInt(baseHP.innerText,10);
+    if(hp<=0){
+        hp = 0;
+        baseHP.innerText = hp.toString();
+        gameEndStatus=1;
+    }
+    if(stopSpawn){
+        for(let i = 0; i < entities.length; i++) {
+            if (entities[i] instanceof Enemy) {
+                return;
+            }
+        }
+        gameEndStatus=2;
+    }
+}
+
+function gameLost(){
+    let modal = document.createElement("div");
+    let modalContent = document.createElement("div");
+
+    modal.style.display = "none";
+    modal.style.position = "fixed";
+    modal.style.zIndex = "1";
+    modal.style.left = "0";
+    modal.style.top = "0";
+    modal.style.width = "100%";
+    modal.style.height = "100%";
+    modal.style.overflow = "auto";
+    modal.style.backgroundColor = "rgba(0,0,0,0.4)";
+
+    modalContent.style.backgroundColor = "#fefefe";
+    modalContent.style.margin = "15% auto";
+    modalContent.style.padding = "20px";
+    modalContent.style.border = "1px solid #888";
+    modalContent.style.width = "50%";
+
+    const title = document.createElement("span");
+    title.innerText = "PREHRA";
+    modalContent.appendChild(title);
+
+    modalContent.appendChild(document.createElement("br"));
+
+    const statKills = document.createElement("span");
+    statKills.innerText = "Počet zabitých nepriateľov: " + killedEnemies.toString();
+    modalContent.appendChild(statKills);
+
+    modalContent.appendChild(document.createElement("br"));
+
+    const statHP = document.createElement("span");
+    statHP.innerText = "Počet tvojich životov: " + baseHP.innerText;
+    modalContent.appendChild(statHP);
+
+    modalContent.appendChild(document.createElement("br"));
+
+    const buttonMenu = document.createElement("button");
+    buttonMenu.style.width = "300px";
+    buttonMenu.style.height = "50px";
+    buttonMenu.innerText = "Návrat do menu";
+    buttonMenu.onclick = () => {
+        while (document.body.firstChild) {
+            document.body.removeChild(document.body.firstChild);
+        }
+        drawMenu();
+    }
+    modal.style.display = "block";
+    modalContent.appendChild(buttonMenu);
+
+    modal.appendChild(modalContent);
+    document.body.appendChild(modal);
+}
+
+function gameWon(){
+    let modal = document.createElement("div");
+    let modalContent = document.createElement("div");
+
+    modal.style.display = "none";
+    modal.style.position = "fixed";
+    modal.style.zIndex = "1";
+    modal.style.left = "0";
+    modal.style.top = "0";
+    modal.style.width = "100%";
+    modal.style.height = "100%";
+    modal.style.overflow = "auto";
+    modal.style.backgroundColor = "rgba(0,0,0,0.4)";
+
+    modalContent.style.backgroundColor = "#fefefe";
+    modalContent.style.margin = "15% auto";
+    modalContent.style.padding = "20px";
+    modalContent.style.border = "1px solid #888";
+    modalContent.style.width = "50%";
+
+    const title = document.createElement("span");
+    title.innerText = "VÝHRA";
+    modalContent.appendChild(title);
+
+    modalContent.appendChild(document.createElement("br"));
+
+    const statKills = document.createElement("span");
+    statKills.innerText = "Počet zabitých nepriateľov: " + killedEnemies.toString();
+    modalContent.appendChild(statKills);
+
+    modalContent.appendChild(document.createElement("br"));
+
+    const statHP = document.createElement("span");
+    statHP.innerText = "Počet tvojich životov: " + baseHP.innerText;
+    modalContent.appendChild(statHP);
+
+    modalContent.appendChild(document.createElement("br"));
+
+    const buttonMenu = document.createElement("button");
+    buttonMenu.style.width = "300px";
+    buttonMenu.style.height = "50px";
+    buttonMenu.innerText = "Návrat do menu";
+    buttonMenu.onclick = () => {
+        while (document.body.firstChild) {
+            document.body.removeChild(document.body.firstChild);
+        }
+        drawMenu();
+    }
+    modal.style.display = "block";
+    modalContent.appendChild(buttonMenu);
+    modal.appendChild(modalContent);
+    document.body.appendChild(modal);
+}
+
+
+
+function spawnEnemies(){
+    if(stopSpawn)
+        return;
+    if(Date.now() - lastSpawnMls > 1000){
+        if(waves[waveIndex][enemyIndex] === 1) {
+            var enemy = new BasicEnemy("normal", 100, 0.5, route[0].x, route[0].y);
+            entities.push(enemy);
+            enemyIndex++;
+            if(waves[waveIndex].length === enemyIndex){
+                enemyIndex = 0;
+                waveIndex++;
+                if(waveIndex === 3)
+                    stopSpawn = true;
+            }
+        }
+        else if(waves[waveIndex][enemyIndex] === 2) {
+            var enemy = new TankEnemy("tank", 150, 0.5, route[0].x, route[0].y);
+            entities.push(enemy);
+            enemyIndex++;
+            if(waves[waveIndex].length === enemyIndex){
+                enemyIndex = 0;
+                waveIndex++;
+                if(waveIndex === 3)
+                    stopSpawn = true;
+            }
+        }
+        lastSpawnMls = Date.now();
+    }
 }
 
 function draw(){
@@ -203,70 +433,17 @@ function findMyself(self){
     }
 }
 
-
-
-function drawBoard() {
-    canvas = document.createElement("canvas");
-    canvas.id = "canvas";
-    canvas.width = 1200;
-    canvas.height = 800;
-    canvas.style.border = "1px solid";
-    canvas.style.backgroundColor = "black";
-    document.body.style.textAlign = "center";
-    document.body.appendChild(canvas);
-
-    for (var i = 1; i < route.length - 1; i++) {
-        //TODO check for opposite directions
-        //TODO draw finish and spawn
-
-        //TODO check for last piece
-        if (route[i].x < route[i + 1].x) {
-            if(route[i-1].y < route[i].y){
-                drawFromUpToRight(route[i].x, route[i].y, route[i + 1].x, route[i + 1].y);
-            }
-            else if(route[i-1].y > route[i].y){
-                drawFromBottomToRight(route[i].x, route[i].y, route[i + 1].x, route[i + 1].y);
-            }
-            else
-                drawHorizontal(route[i].x, route[i].y, route[i + 1].x, route[i + 1].y);
-        }
-        else if (route[i].y < route[i + 1].y) {
-            if (route[i].x > route[i-1].x) {
-                drawFromBottomToLeft(route[i].x, route[i].y, route[i + 1].x, route[i + 1].y);
-            } else if (route[i].x < route[i-1].x) {
-                drawFromBottomToRight(route[i].x, route[i].y, route[i + 1].x, route[i + 1].y);
-            }
-            else
-                drawVertical(route[i].x, route[i].y, route[i + 1].x, route[i + 1].y);
-        }
-        else if(route[i].x > route[i + 1].x){
-            if(route[i-1].y < route[i].y) {
-                drawFromUpToLeft(route[i].x, route[i].y, route[i + 1].x, route[i + 1].y);
-            } else if(route[i-1].y > route[i].y){
-                drawFromBottomToLeft(route[i].x, route[i].y, route[i + 1].x, route[i + 1].y);
-            }
-            drawHorizontal(route[i].x, route[i].y, route[i + 1].x, route[i + 1].y);
-        }
-        else if (route[i].y > route[i + 1].y) {
-            if (route[i-1].x < route[i].x) {
-                drawFromUpToLeft(route[i].x, route[i].y, route[i + 1].x, route[i + 1].y);
-            } else if (route[i-1].x > route[i].x) {
-                drawFromUpToRight(route[i].x, route[i].y, route[i + 1].x, route[i + 1].y);
-            }
-            else
-                drawVertical(route[i].x, route[i].y, route[i + 1].x, route[i + 1].y);
-        }
-    }
-}
-
 function drawBoard1() {
-
-
     for (var i = 0; i < route.length - 1; i++) {
         drawLine(new Point(route[i].x, route[i].y),new Point(route[i+1].x,route[i+1].y), "white");
     }
 }
 
+function updateHP(damage){
+    let hp = parseInt(baseHP.innerText,10);
+    hp -= damage;
+    baseHP.innerText = hp.toString();
+}
 
 function drawLine(stPoint, endPoint, color) {
     ctx.beginPath();
@@ -280,36 +457,6 @@ function drawLine(stPoint, endPoint, color) {
 var Point = function (x, y) {
     this.x = x;
     this.y = y;
-}
-
-function drawHorizontal(firstX, firstY, secondX, secondY) {
-    drawLine(new Point(firstX, firstY), new Point(secondX, secondY), "white");
-    drawLine(new Point(firstX, firstY + OFFSET), new Point(secondX, secondY + OFFSET), "white");
-}
-
-function drawVertical(firstX, firstY, secondX, secondY){
-    drawLine(new Point(firstX, firstY), new Point(secondX, secondY), "white");
-    drawLine(new Point(firstX+OFFSET, firstY), new Point(secondX+OFFSET, secondY), "white");
-}
-
-function drawFromUpToRight(firstX, firstY, secondX, secondY){
-    drawLine(new Point(firstX,firstY), new Point(firstX,firstY+OFFSET), "white");
-    drawLine(new Point(firstX,firstY+OFFSET), new Point(firstX+OFFSET,firstY+OFFSET), "white");
-}
-
-function drawFromUpToLeft(firstX, firstY, secondX, secondY){
-    drawLine(new Point(firstX+OFFSET,firstY),new Point(firstX+OFFSET,firstY+OFFSET),"white");
-    drawLine(new Point(firstX,firstY+OFFSET),new Point(firstX+OFFSET,firstY+OFFSET),"white");
-}
-
-function drawFromBottomToRight(firstX, firstY, secondX, secondY){
-    drawLine(new Point(firstX,firstY),new Point(firstX,firstY+OFFSET),"white");
-    drawLine(new Point(firstX,firstY),new Point(firstX+OFFSET,firstY),"white");
-}
-
-function drawFromBottomToLeft(firstX, firstY, secondX, secondY){
-    drawLine(new Point(firstX,firstY),new Point(firstX+OFFSET,firstY),"white");
-    drawLine(new Point(firstX+OFFSET,firstY),new Point(firstX+OFFSET,firstY+OFFSET),"white");
 }
 
 drawMenu();
