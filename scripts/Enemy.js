@@ -15,7 +15,7 @@ class Enemy {
     update(ctx, route){
         this.updateWaypoint(route);
         const distance = calculateDistance(this.x,this.y,route[route.length-1].x,route[route.length-1].y);
-        if(distance<3){
+        if(distance<1 && this.currentWaypoint===route.length-1){
             entities.splice(findMyself(this),1);
             updateHP(this.damageToBase);
         }
@@ -51,6 +51,5 @@ class Enemy {
         total += this.reward;
         money.innerText = total.toString();
         entities.splice(findMyself(this),1);
-        console.log("dead");
     }
 }

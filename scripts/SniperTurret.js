@@ -2,8 +2,8 @@
 class SniperTurret extends Turret {
     constructor(type, health,startX, startY){
         super(type, health,startX, startY);
-        this.cost = 100;
-        this.image.src = "../tureta1.png";
+        this.damage = 200;
+        this.image.src = "../img/tureta1.png";
     }
     shoot(){
         if(Date.now() - this.lastShotmls > 2000){

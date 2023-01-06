@@ -6,10 +6,10 @@ class Turret {
         this.y = startY;
         this.dir=1;
         this.lastShotmls = 0;
-        this.cost=50;
+        this.damage = 25;
         this.isActive=false;
         this.image = new Image;
-        this.image.src = "../tureta3.png";
+        this.image.src = "../img/tureta3.png";
     }
     update(ctx){
         if(this.isActive)
@@ -46,7 +46,7 @@ class Turret {
             }
             const closestEnemy = entities[closestEnemyIndex];
             const closestAngle = angle(this.x,this.y,closestEnemy.x,closestEnemy.y);
-            entities.push(new Bullet(this.x,this.y,closestAngle,10));
+            entities.push(new Bullet(this.x,this.y,closestAngle,10, this.damage));
             this.lastShotmls = Date.now();
             this.dir = closestAngle;
         }
